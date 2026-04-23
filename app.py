@@ -248,6 +248,25 @@ def api_send_whatsapp():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/send_whatsapp_text", methods=["POST"])
+def api_send_whatsapp_text():
+    try:
+        from logic.whatsapp_sender import send_whatsapp_text
+        payload = request.get_json()
+        mobile  = payload.get("mobile", "")
+        message = payload.get("message", "")
+
+        if not mobile or not message:
+            return jsonify({"success": False, "error": "Mobile ya message missign hai."}), 400
+
+        success, response = send_whatsapp_text(mobile, message)
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": str(response)}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5055)

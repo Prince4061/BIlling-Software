@@ -24,6 +24,10 @@
             📥 Export to PDF
         </button>
 
+        <button class="btn btn-wa" id="btn-bulk-wa" onclick="sendBulkWhatsApp()" style="background:#25D366; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:600; cursor:pointer;">
+            💬 Send WhatsApp Reminders
+        </button>
+
         <div style="text-align:right; min-width:180px;">
             <div class="kpi-label">Total Baaki Rakam</div>
             <div id="total-pending" style="font-size:24px; font-weight:800; color:var(--danger);">₹ —</div>
@@ -178,5 +182,105 @@ async function exportPDF() {
 }
 
 loadData();
+
+let isSending = false;
+
+async function sendBulkWhatsApp() {
+    if (isSending) return;
+    
+    const minDays = Math.max(0, parseInt(document.getElementById('f-days').value) || 0);
+    
+    // Filter out users with no mobile number
+    const targetUsers = allData.filter(r => r.days_pending >= minDays)
+                               .filter(r => r.mobile && r.mobile.toString().trim() !== '' && r.mobile.toString().trim() !== '—');
+
+    if (targetUsers.length === 0) {
+        showToast('Koi customer valid mobile number ke sath nahi mila!', 'warning');
+        return;
+    }
+
+    const proceed = await new Promise(resolve => {
+        showModal({
+            icon: '💬',
+            title: 'Bulk WhatsApp Reminders',
+            body: `Kya aap ${targetUsers.length} customers ko WhatsApp reminder bhejna chahte hain?<br><small>(Har message me 4 second ka gap rahega takii WhatsApp ban na ho)</small>`,
+            okText: 'Haan, Bhejo',
+            okClass: 'btn-primary',
+            showCancel: true,
+            onOk: () => resolve(true),
+        });
+        setTimeout(() => {
+            const cancelBtn = document.getElementById('modal-cancel');
+            if (cancelBtn) {
+                const origClick = cancelBtn.onclick;
+                cancelBtn.onclick = () => { if(origClick) origClick(); resolve(false); };
+            }
+        }, 50);
+    });
+
+    if (!proceed) return;
+
+    isSending = true;
+    const btn = document.getElementById('btn-bulk-wa');
+    btn.disabled = true;
+
+    showModal({
+        icon: '⏳',
+        title: 'WhatsApp Sending...',
+        body: `<div id="wa-progress" style="font-size:16px; margin-top:10px;">0 / ${targetUsers.length} bheje gaye</div>`,
+        okText: 'Wait...',
+        okClass: 'btn-ghost',
+        showCancel: false
+    });
+
+    const okBtn = document.getElementById('modal-ok');
+    okBtn.disabled = true;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < targetUsers.length; i++) {
+        const u = targetUsers[i];
+        
+        const message = `Namaste ${u.name} Ji!\n\nH.H. MOBILE & Enterprises se aapka baaki khata yaad dilane ke liye message hai.\n\nAapka ₹${u.due} baaki hai.\nKripya jaldi payment clear karein.\n\nShukriya!`;
+
+        try {
+            const res = await fetch('/api/send_whatsapp_text', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ mobile: u.mobile, message: message })
+            });
+            const json = await res.json();
+            if (json.success) {
+                successCount++;
+            } else {
+                failCount++;
+                console.error("Failed for", u.name, json.error);
+            }
+        } catch(e) {
+            failCount++;
+            console.error("Error for", u.name, e);
+        }
+
+        document.getElementById('wa-progress').innerHTML = `
+            <strong>${i + 1} / ${targetUsers.length} bheje gaye</strong><br>
+            <span style="color:var(--success)">Success: ${successCount}</span> | <span style="color:var(--danger)">Fail: ${failCount}</span>
+        `;
+
+        // Wait 4 seconds unless it's the last user
+        if (i < targetUsers.length - 1) {
+            await new Promise(r => setTimeout(r, 4000));
+        }
+    }
+
+    okBtn.disabled = false;
+    okBtn.innerText = '✅ Done';
+    okBtn.className = 'btn btn-primary';
+    document.getElementById('wa-progress').innerHTML += '<br><br><b>Pura ho gaya! Aap is popup ko close kar sakte hain.</b>';
+    
+    isSending = false;
+    btn.disabled = false;
+}
+
 </script>
 {% endblock %}

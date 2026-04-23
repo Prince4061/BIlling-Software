@@ -53,3 +53,30 @@ def send_whatsapp_bill(pdf_path, mobile_number, customer_name):
         return True, response.json()
     else:
         return False, response.text
+
+def send_whatsapp_text(mobile_number, message):
+    """
+    Sends a simple text message via Evolution API.
+    """
+    url = f"{API_URL_BASE}/message/sendText/{INSTANCE_NAME.replace(' ', '%20')}"
+    
+    headers = {
+        "apikey": API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    mobile_str = str(mobile_number).strip()
+    if len(mobile_str) == 10:
+        mobile_str = "91" + mobile_str
+
+    payload = {
+        "number": mobile_str,
+        "text": message
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    
+    if response.status_code in [200, 201]:
+        return True, response.json()
+    else:
+        return False, response.text
