@@ -1,0 +1,98 @@
+
+## 🧾 **1. Header Section (Top Part)**
+
+* Sabse upar **GSTIN number** diya hua hai
+* Right side me **Mobile aur WhatsApp number**
+* Left side me **MI Partner logo**
+* Beech me **Shop ka naam: H.H. MOBILE & Enterprises (bold & highlight me)**
+* Neeche **address line** (Near Makkad Complex, Takhatpur)
+
+👉 Ye section branding + contact info ke liye hai
+
+---
+
+## 📦 **2. Product Categories Section**
+
+* Iske neeche bullet points me categories:
+
+  * T.V.
+  * A.C.
+  * Washing Machine
+  * Inverter Battery
+  * Mobile
+  * Fridge
+
+👉 Ye batata hai ki shop me kya-kya milta hai
+
+---
+
+## 📝 **3. Customer Details Section**
+
+* Fields diye hue hain:
+
+  * Bill No. (example: 117)
+  * Date
+  * M/s (Customer Name)
+  * Address
+  * WhatsApp Number
+
+👉 Ye section customer information fill karne ke liye hai
+
+---
+
+## 📊 **4. Main Billing Table**
+
+Ek bada table hai jisme columns hain:
+
+* S.No.
+* Particulars (item name)
+* Qty (quantity)
+* Rate (price per item)
+* Amount (total)
+
+👉 Yaha par purchase details likhi jati hain
+
+---
+
+## 🧮 **5. Calculation Section (Right Bottom)**
+
+* Tax
+* G. Total (Grand Total)
+
+👉 Final amount calculate karne ke liye
+
+---
+
+## 🏷️ **6. Branding + Signature Section**
+
+* Right side me:
+
+  * "H.H. MOBILE proprietor"
+* Neeche:
+
+  * Customer Signature
+  * Bajaj Finserv logo
+
+👉 Trust aur verification ke liye
+
+---
+
+## 📢 **7. Terms & Conditions (Bottom Left)**
+
+* Goods return nahi honge
+* Service center guarantee
+* S.T. Extra
+* Bajaj Finance available
+
+👉 Important rules mention kiye gaye hain
+
+---
+
+## 🎨 **Overall Design Style**
+
+* Blue + White color theme (professional look)
+* Clean table layout
+* Mixed use of bold headings & simple text
+* Business + electronics theme images
+
+---

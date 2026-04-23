@@ -1,0 +1,437 @@
+{% extends "layout.html" %}
+
+{% block title %}Bill Banao{% endblock %}
+{% block page_title %}🧾 Naya Bill Banao{% endblock %}
+
+{% block content %}
+
+<div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+
+    <!-- LEFT: Form + Items -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+        <!-- Customer Details -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">👤 Customer Ki Details</span>
+            </div>
+            <div class="card-body">
+                <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+                    <div class="form-group">
+                        <label class="form-label">Customer Ka Naam *</label>
+                        <input id="f-name" class="form-control" type="text" placeholder="Naam likhein...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mobile No.</label>
+                        <input id="f-mobile" class="form-control" type="tel" placeholder="10-digit number">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pata (Address)</label>
+                        <input id="f-address" class="form-control" type="text" placeholder="Ghar ya dukaan ka pata...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Item -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📦 Item Add Karo</span>
+                <span class="badge badge-green" id="item-count-badge">0 / 6 Items</span>
+            </div>
+            <div class="card-body">
+                <div class="form-grid" style="grid-template-columns: 1.2fr 2fr 2fr; gap:12px; margin-bottom:12px;">
+                    <div class="form-group">
+                        <label class="form-label">Company</label>
+                        <select id="f-company" class="form-control">
+                            <option>Xiaomi</option>
+                            <option>iPhone</option>
+                            <option>Vivo</option>
+                            <option>Samsung</option>
+                            <option>Oppo</option>
+                            <option>Realme</option>
+                            <option>OnePlus</option>
+                            <option>Nokia</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Item Ka Naam *</label>
+                        <input id="f-item" class="form-control" type="text" placeholder="Model name...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">IMEI / Serial No.</label>
+                        <textarea id="f-desc" class="form-control" placeholder="Optional details... (Press Enter for new line)" rows="2" style="resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:flex-end;">
+                    <div class="form-group">
+                        <label class="form-label">Qty</label>
+                        <input id="f-qty" class="form-control" type="number" placeholder="1" min="1" style="width:100px">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rate (₹)</label>
+                        <input id="f-rate" class="form-control" type="number" placeholder="0.00" min="0" style="width:120px">
+                    </div>
+                    <button class="btn btn-primary" onclick="addItem()">
+                        ➕ Add Karo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 Bill Items</span>
+                <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑️ Sab Hatao</button>
+            </div>
+            <div class="items-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th>Company</th>
+                            <th>Item Ka Naam</th>
+                            <th style="width:60px; text-align:center">Qty</th>
+                            <th style="text-align:right">Rate (₹)</th>
+                            <th style="text-align:right">Rakam (₹)</th>
+                            <th style="width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        <tr id="empty-row">
+                            <td colspan="7">
+                                <div class="empty-state" style="padding:28px;">
+                                    <div class="empty-icon">📦</div>
+                                    <p>Koi item nahi — upar se add karo</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT: Totals + Generate -->
+    <div style="position:sticky; top:0; display:flex; flex-direction:column; gap:16px;">
+
+        <!-- Totals Panel -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">💲 Hisaab</span>
+            </div>
+            <div class="card-body">
+                <div class="form-grid" style="gap:12px; margin-bottom:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Tax (₹)</label>
+                        <input id="f-tax" class="form-control" type="number" value="0" min="0" oninput="recalculate()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Paid (₹) — Diya Gaya</label>
+                        <input id="f-paid" class="form-control" type="number" placeholder="Grand total se kam..." min="0" oninput="recalculate()">
+                    </div>
+                </div>
+
+                <div class="totals-panel">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span id="t-sub">₹ 0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Tax</span>
+                        <span id="t-tax">₹ 0.00</span>
+                    </div>
+                    <div class="total-row grand">
+                        <span>Grand Total</span>
+                        <span id="t-grand">₹ 0.00</span>
+                    </div>
+                    <div class="total-row paid-row">
+                        <span>✓ Paid</span>
+                        <span id="t-paid">₹ 0.00</span>
+                    </div>
+                    <div class="total-row due">
+                        <span>⚠️ Baaki (Due)</span>
+                        <span id="t-due">₹ 0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <button class="btn btn-success btn-lg" id="btn-generate" onclick="generateBill()" style="justify-content:center; width:100%">
+            ✅ Bill Banao
+        </button>
+
+        <button class="btn btn-wa btn-lg" id="btn-wa" onclick="sendWhatsApp()" style="justify-content:center; width:100%" disabled>
+            💬 WhatsApp Par Bhejo
+        </button>
+
+        <button class="btn btn-ghost" onclick="clearAll()" style="justify-content:center; width:100%">
+            🔄 Form Reset Karo
+        </button>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let items = [];
+let lastBill = null;  // { pdf_path, mobile, customer_name }
+
+/* ── Format helpers ──────────────────────────────────── */
+function fmt(n) {
+    return '₹ ' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/* ── Add Item ────────────────────────────────────────── */
+function addItem() {
+    if (items.length >= 6) {
+        showToast('Maximum 6 items allowed. Pehle bill banao.', 'warning');
+        return;
+    }
+
+    const company = document.getElementById('f-company').value;
+    const name    = document.getElementById('f-item').value.trim();
+    const desc    = document.getElementById('f-desc').value.trim();
+    const qtyStr  = document.getElementById('f-qty').value.trim();
+    const rateStr = document.getElementById('f-rate').value.trim();
+
+    if (!name)    { showToast('Item ka naam likhna zaroori hai!', 'warning'); document.getElementById('f-item').focus(); return; }
+    if (!qtyStr)  { showToast('Qty likhna zaroori hai!', 'warning'); document.getElementById('f-qty').focus(); return; }
+    if (!rateStr) { showToast('Rate likhna zaroori hai!', 'warning'); document.getElementById('f-rate').focus(); return; }
+
+    const qty  = parseFloat(qtyStr);
+    const rate = parseFloat(rateStr);
+
+    if (isNaN(qty) || qty <= 0)  { showToast('Qty sahi number likhein!', 'error'); return; }
+    if (isNaN(rate) || rate < 0) { showToast('Rate sahi number likhein!', 'error'); return; }
+
+    const amount = parseFloat((qty * rate).toFixed(2));
+    const item   = { company, name, desc, qty, rate, amount };
+    items.push(item);
+
+    renderTable();
+    recalculate();
+
+    // Reset item fields
+    document.getElementById('f-item').value  = '';
+    document.getElementById('f-desc').value  = '';
+    document.getElementById('f-qty').value   = '';
+    document.getElementById('f-rate').value  = '';
+    document.getElementById('f-item').focus();
+}
+
+/* ── Remove Item ─────────────────────────────────────── */
+function removeItem(idx) {
+    items.splice(idx, 1);
+    renderTable();
+    recalculate();
+}
+
+/* ── Render Table ────────────────────────────────────── */
+function renderTable() {
+    const tbody = document.getElementById('items-tbody');
+    document.getElementById('item-count-badge').textContent = `${items.length} / 6 Items`;
+
+    if (items.length === 0) {
+        tbody.innerHTML = `
+            <tr id="empty-row"><td colspan="7">
+                <div class="empty-state" style="padding:28px;">
+                    <div class="empty-icon">📦</div>
+                    <p>Koi item nahi — upar se add karo</p>
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map((it, i) => `
+        <tr>
+            <td style="color:var(--text-muted); text-align:center">${i + 1}</td>
+            <td><span class="badge badge-green">${it.company}</span></td>
+            <td>
+                <div style="font-weight:600">${it.name}</div>
+                ${it.desc ? `<div style="font-size:0.85em; color:var(--text-muted); margin-top:2px;">${it.desc}</div>` : ''}
+            </td>
+            <td style="text-align:center">${it.qty}</td>
+            <td style="text-align:right">${fmt(it.rate)}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary)">${fmt(it.amount)}</td>
+            <td style="text-align:center">
+                <button class="btn btn-danger btn-sm" onclick="removeItem(${i})" title="Hatao" style="padding:4px 10px;">✕</button>
+            </td>
+        </tr>`).join('');
+}
+
+/* ── Recalculate Totals ──────────────────────────────── */
+function recalculate() {
+    const subtotal = items.reduce((s, it) => s + it.amount, 0);
+    const tax      = parseFloat(document.getElementById('f-tax').value) || 0;
+    const grand    = parseFloat((subtotal + tax).toFixed(2));
+    const paidRaw  = document.getElementById('f-paid').value.trim();
+    const paid     = paidRaw === '' ? grand : Math.min(Math.max(parseFloat(paidRaw)||0, 0), grand);
+    const due      = parseFloat((grand - paid).toFixed(2));
+
+    document.getElementById('t-sub').textContent   = fmt(subtotal);
+    document.getElementById('t-tax').textContent   = fmt(tax);
+    document.getElementById('t-grand').textContent = fmt(grand);
+    document.getElementById('t-paid').textContent  = fmt(paid);
+    document.getElementById('t-due').textContent   = fmt(due);
+
+    const dueEl = document.getElementById('t-due').parentElement;
+    dueEl.style.color = due > 0 ? 'var(--danger)' : 'var(--accent)';
+}
+
+/* ── Generate Bill ───────────────────────────────────── */
+async function generateBill() {
+    const name   = document.getElementById('f-name').value.trim();
+    const mobile = document.getElementById('f-mobile').value.trim();
+
+    if (!name) { showToast('Customer ka naam likhna zaroori hai!', 'warning'); document.getElementById('f-name').focus(); return; }
+    if (!items.length) { showToast('Kam az kam ek item add karo!', 'warning'); return; }
+
+    // If no mobile, ask for confirmation before proceeding
+    if (!mobile) {
+        const proceed = await new Promise(resolve => {
+            showModal({
+                icon: '📵',
+                title: 'Mobile Number Nahi Diya',
+                body: 'Mobile number nahi diya hai. Phir bhi bill banana hai?',
+                okText: 'Haan, Banana Hai',
+                okClass: 'btn-primary',
+                showCancel: true,
+                onOk: () => resolve(true),
+            });
+            // Cancel button resolves false — patch the cancel btn after render
+            setTimeout(() => {
+                const cancelBtn = document.getElementById('modal-cancel');
+                if (cancelBtn) {
+                    const origClick = cancelBtn.onclick;
+                    cancelBtn.onclick = () => { if(origClick) origClick(); resolve(false); };
+                }
+            }, 50);
+        });
+        if (!proceed) return;  // User cancelled — stop here
+    }
+
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Ban Raha Hai...';
+
+    try {
+        const paidRaw   = document.getElementById('f-paid').value.trim();
+        const tax       = parseFloat(document.getElementById('f-tax').value) || 0;
+        const subtotal  = items.reduce((s,i)=>s+i.amount,0);
+        const grand     = parseFloat((subtotal+tax).toFixed(2));
+        const paid      = paidRaw === '' ? grand : Math.min(Math.max(parseFloat(paidRaw)||0,0),grand);
+
+        const payload   = {
+            customer_name: name,
+            mobile,
+            address: document.getElementById('f-address').value.trim(),
+            items,
+            tax,
+            paid_amount: paid,
+        };
+
+        const res  = await fetch('/api/generate_bill', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+        const json = await res.json();
+
+        if (!json.success) { showToast('Error: ' + json.error, 'error', 5000); return; }
+
+        // Save bill info BEFORE clearing the form
+        const savedBill = { pdf_path: json.pdf_path, mobile, customer_name: name };
+        lastBill = savedBill;
+
+        const dueMsg = json.due > 0 ? `<br><span style="color:var(--danger)">⚠️ Baaki Rakam: ₹${json.due.toFixed(2)}</span>` : '';
+
+        showModal({
+            icon:     '🎉',
+            title:    `Bill #${json.bill_no} Taiyaar Hai!`,
+            body:     `Grand Total: <strong>₹${json.grand_total.toFixed(2)}</strong><br>PDF save ho gaya!${dueMsg}`,
+            okText:   '📄 PDF Kholo',
+            okClass:  'btn-primary',
+            onOk:     () => openPdf(savedBill.pdf_path),
+        });
+
+        // Reset form items + fields but PRESERVE lastBill and WhatsApp button state
+        clearAll(true);
+
+        // Re-apply lastBill and enable WhatsApp after clearAll
+        lastBill = savedBill;
+        document.getElementById('btn-wa').disabled = !mobile;
+
+        if (mobile) {
+            showToast('WhatsApp button active hai — bill bhej sakte ho! 💬', 'info', 4000);
+        }
+
+    } catch(e) {
+        showToast('Server error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✅ Bill Banao';
+    }
+}
+
+/* ── Open PDF ────────────────────────────────────────── */
+async function openPdf(pdfPath) {
+    await fetch('/api/open_pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ pdf_path: pdfPath }) });
+}
+
+/* ── WhatsApp ────────────────────────────────────────── */
+async function sendWhatsApp() {
+    if (!lastBill) { showToast('Pehle bill banao!', 'warning'); return; }
+
+    const btn = document.getElementById('btn-wa');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Bhej Raha Hai...';
+
+    try {
+        const res  = await fetch('/api/send_whatsapp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(lastBill) });
+        const json = await res.json();
+        if (json.success) {
+            showToast('Bill WhatsApp par bhej diya gaya! ✅', 'success');
+            btn.disabled = true;
+        } else {
+            showToast('WhatsApp Error: ' + json.error, 'error', 6000);
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'error');
+        btn.disabled = false;
+    } finally {
+        btn.innerHTML = '💬 WhatsApp Par Bhejo';
+    }
+}
+
+/* ── Clear All ───────────────────────────────────────── */
+// preserveBill=true: only resets form fields & items, keeps lastBill intact
+function clearAll(preserveBill = false) {
+    items = [];
+    if (!preserveBill) {
+        lastBill = null;
+        document.getElementById('btn-wa').disabled = true;
+    }
+    renderTable();
+    recalculate();
+    document.getElementById('f-name').value    = '';
+    document.getElementById('f-mobile').value  = '';
+    document.getElementById('f-address').value = '';
+    document.getElementById('f-tax').value     = '0';
+    document.getElementById('f-paid').value    = '';
+}
+
+/* ── Enter key on item fields ────────────────────────── */
+['f-item','f-qty','f-rate'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') addItem();
+    });
+});
+
+recalculate();
+</script>
+{% endblock %}

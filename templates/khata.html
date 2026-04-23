@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+
+{% block title %}Baaki Khata{% endblock %}
+{% block page_title %}💰 Baaki Khata — Pending Payments{% endblock %}
+
+{% block content %}
+
+<!-- Header Controls -->
+<div class="card" style="margin-bottom:18px;">
+    <div class="card-body" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div style="flex:1; min-width:220px;">
+            <label class="form-label" style="display:block; margin-bottom:6px;">🔍 Filter: Jinse zyada dino se payment nahi hua</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <input type="number" id="f-days" class="form-control" value="0" min="0" style="width:90px" placeholder="0">
+                <span style="font-size:14px; color:var(--text-muted);">din se zyada</span>
+                <button class="btn btn-primary btn-sm" onclick="applyFilter()">Filter Lagao</button>
+                <button class="btn btn-ghost btn-sm" onclick="resetFilter()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Export Button -->
+        <button class="btn btn-primary" id="btn-export" onclick="exportPDF()">
+            📥 Export to PDF
+        </button>
+
+        <div style="text-align:right; min-width:180px;">
+            <div class="kpi-label">Total Baaki Rakam</div>
+            <div id="total-pending" style="font-size:24px; font-weight:800; color:var(--danger);">₹ —</div>
+            <div id="total-count"   style="font-size:13px; color:var(--text-muted);">— records</div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+    <span class="badge badge-red">🔴 30+ din — Bahut Zyada Urgent</span>
+    <span class="badge badge-orange">🟠 7–30 din — Thodi Jaldi</span>
+    <span class="badge badge-yellow">🟡 0–7 din — Normal</span>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">📋 Jinka Paisa Baaki Hai</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadData()">🔄 Refresh</button>
+    </div>
+    <div class="items-table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:70px">Bill No</th>
+                    <th style="width:100px">Tarikh</th>
+                    <th>Customer Ka Naam</th>
+                    <th style="width:110px">Mobile</th>
+                    <th style="text-align:right; width:100px">Kul (₹)</th>
+                    <th style="text-align:right; width:100px">Diya (₹)</th>
+                    <th style="text-align:right; width:110px">Baaki (₹)</th>
+                    <th style="text-align:center; width:120px">Pending Since</th>
+                </tr>
+            </thead>
+            <tbody id="khata-tbody">
+                <tr><td colspan="8">
+                    <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading...</p></div>
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allData = [];
+
+function fmt(n) {
+    return '₹ ' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function dayTag(d) {
+    if (d > 30) return 'badge-red';
+    if (d > 7)  return 'badge-orange';
+    return 'badge-yellow';
+}
+
+async function loadData() {
+    try {
+        const res  = await fetch('/api/pending');
+        const json = await res.json();
+        if (!json.success) { showToast('Data load nahi hua: ' + json.error, 'error'); return; }
+        allData = json.data;
+        renderTable(allData);
+    } catch(e) {
+        showToast('Server se connect nahi ho pa raha.', 'error');
+    }
+}
+
+function renderTable(data) {
+    const total = data.reduce((s, r) => s + r.due, 0);
+    document.getElementById('total-pending').textContent = fmt(total);
+    document.getElementById('total-count').textContent   = `${data.length} record(s)`;
+
+    const tbody = document.getElementById('khata-tbody');
+
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="8">
+                <div class="empty-state" style="padding:40px;">
+                    <div class="empty-icon">🎉</div>
+                    <p>Is filter mein koi baaki nahi hai! Sab clear hai.</p>
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(r => {
+        const tag = dayTag(r.days_pending);
+        const rowBg = r.days_pending > 30 ? '#fff5f5' : r.days_pending > 7 ? '#fffaf0' : '#fefff5';
+        return `
+        <tr style="background:${rowBg}">
+            <td style="text-align:center; font-weight:700; color:var(--primary)">#${r.bill_no}</td>
+            <td style="color:var(--text-muted); font-size:12.5px">${String(r.date).slice(0,10)}</td>
+            <td style="font-weight:600">${r.name}</td>
+            <td style="font-size:13px; color:var(--text-muted)">${r.mobile || '—'}</td>
+            <td style="text-align:right">${fmt(r.total)}</td>
+            <td style="text-align:right; color:var(--accent); font-weight:600">${fmt(r.paid)}</td>
+            <td style="text-align:right; font-weight:800; color:var(--danger)">${fmt(r.due)}</td>
+            <td style="text-align:center">
+                <span class="badge ${tag}">${r.days_pending} din</span>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function applyFilter() {
+    const minDays = Math.max(0, parseInt(document.getElementById('f-days').value) || 0);
+    const filtered = allData.filter(r => r.days_pending >= minDays);
+    renderTable(filtered);
+}
+
+function resetFilter() {
+    document.getElementById('f-days').value = '0';
+    renderTable(allData);
+}
+
+document.getElementById('f-days').addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyFilter();
+});
+
+/* ── Export PDF ───────────────────────────────────── */
+async function exportPDF() {
+    const btn     = document.getElementById('btn-export');
+    const minDays = Math.max(0, parseInt(document.getElementById('f-days').value) || 0);
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span> Ban Raha Hai...';
+
+    try {
+        const res  = await fetch('/api/export/pending-pdf', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ min_days: minDays })
+        });
+        const json = await res.json();
+        if (json.success) {
+            showToast(`✅ Pending PDF ban gaya! ${json.count} records export kiye.`, 'success', 4000);
+        } else {
+            showToast('PDF Error: ' + json.error, 'error', 5000);
+        }
+    } catch(e) {
+        showToast('Server error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📥 Export to PDF';
+    }
+}
+
+loadData();
+</script>
+{% endblock %}

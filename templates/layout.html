@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ur" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ali Mobiles{% endblock %} — Billing Software</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ── Sidebar ─────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">📱</div>
+            <h2>H.H. Mobile &amp;<br>Enterprises</h2>
+            <p>Billing Management</p>
+        </div>
+
+        <span class="nav-label">Main Menu</span>
+        <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+            <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="/billing" class="nav-item {% if request.path == '/billing' %}active{% endif %}">
+            <span class="nav-icon">🧾</span> Bill Banao
+        </a>
+        <a href="/khata" class="nav-item {% if request.path == '/khata' %}active{% endif %}">
+            <span class="nav-icon">💰</span> Baaki Khata
+        </a>
+        <a href="/master" class="nav-item {% if request.path == '/master' %}active{% endif %}">
+            <span class="nav-icon">📁</span> Master Data
+        </a>
+
+        <div class="sidebar-footer">
+            <strong style="color:rgba(255,255,255,.4)">Ali Mobiles v2.0</strong><br>
+            Local Offline Software<br>Near Makkad Complex, Takhatpur
+        </div>
+    </aside>
+
+    <!-- ── Main Content ─────────────────────────────────── -->
+    <div class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <h1 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="topbar-date" id="live-clock">
+                📅 <span id="clock-text">—</span>
+            </div>
+        </header>
+
+        <!-- Page Body -->
+        <div class="page-body">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ── Global JS Utilities ─────────────────────────────── -->
+<script>
+/* Live Clock */
+function updateClock() {
+    const now = new Date();
+    const d   = now.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+    const t   = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('clock-text').textContent = `${d} • ${t}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* Toast Notifications */
+function showToast(message, type = 'info', duration = 3500) {
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span style="font-size:18px">${icons[type]||'ℹ️'}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 350);
+    }, duration);
+}
+
+/* Modal Helper */
+function showModal({ icon='💡', title='', body='', okText='Theek Hai', okClass='btn-primary', onOk=null, showCancel=false }) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+        <div class="modal-box">
+            <div class="modal-icon">${icon}</div>
+            <div class="modal-title">${title}</div>
+            <div class="modal-body">${body}</div>
+            <div class="modal-actions">
+                ${showCancel ? `<button class="btn btn-ghost" id="modal-cancel">Nahi, Wapis Jao</button>` : ''}
+                <button class="btn ${okClass}" id="modal-ok">${okText}</button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('modal-ok').onclick = () => {
+        overlay.remove();
+        if (onOk) onOk();
+    };
+    if (showCancel) {
+        document.getElementById('modal-cancel').onclick = () => overlay.remove();
+    }
+}
+</script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

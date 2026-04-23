@@ -1,0 +1,232 @@
+{% extends "layout.html" %}
+
+{% block title %}Master Data{% endblock %}
+{% block page_title %}📁 Master Data — Sabhi Bills{% endblock %}
+
+{% block content %}
+
+<!-- Header Controls -->
+<div class="card" style="margin-bottom:18px;">
+    <div class="card-body" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+
+        <!-- Search -->
+        <div style="flex:1; min-width:200px;">
+            <input type="text" id="f-search" class="form-control" placeholder="🔍 Customer naam, mobile, company se dhundho...">
+        </div>
+
+        <!-- Company Filter -->
+        <div>
+            <select id="f-company" class="form-control" style="width:140px">
+                <option value="">Sab Companies</option>
+                <option>Xiaomi</option>
+                <option>iPhone</option>
+                <option>Vivo</option>
+                <option>Samsung</option>
+                <option>Oppo</option>
+                <option>Realme</option>
+                <option>OnePlus</option>
+                <option>Nokia</option>
+                <option>Other</option>
+            </select>
+        </div>
+
+        <button class="btn btn-ghost btn-sm" onclick="loadData()">🔄 Refresh</button>
+
+        <!-- Export Button -->
+        <button class="btn btn-primary" id="btn-export" onclick="exportPDF()">
+            📥 Export to PDF
+        </button>
+
+        <!-- Summary Badges -->
+        <div style="display:flex; gap:10px; margin-left:auto; flex-wrap:wrap;">
+            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
+                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Bills</div>
+                <div id="s-bills" style="font-size:18px; font-weight:800; color:var(--primary)">—</div>
+            </div>
+            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
+                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Revenue</div>
+                <div id="s-revenue" style="font-size:18px; font-weight:800; color:var(--accent)">—</div>
+            </div>
+            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
+                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Due</div>
+                <div id="s-due" style="font-size:18px; font-weight:800; color:var(--danger)">—</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">📋 Bills Ki Poori List</span>
+        <span id="row-count" class="badge badge-green">Loading...</span>
+    </div>
+    <div class="items-table-wrap" style="max-height:calc(100vh - 310px); overflow-y:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:50px; cursor:pointer" onclick="sortBy('Bill No')">Bill# ↕</th>
+                    <th style="width:90px; cursor:pointer" onclick="sortBy('Date')">Tarikh ↕</th>
+                    <th>Customer Ka Naam</th>
+                    <th style="width:110px">Mobile</th>
+                    <th style="width:90px">Company</th>
+                    <th>Item</th>
+                    <th style="width:50px; text-align:center">Qty</th>
+                    <th style="text-align:right; width:90px">Rate (₹)</th>
+                    <th style="text-align:right; width:100px">Amount (₹)</th>
+                    <th style="text-align:right; width:100px">Grand Total</th>
+                    <th style="text-align:right; width:90px">Paid</th>
+                    <th style="text-align:right; width:90px">Baaki</th>
+                </tr>
+            </thead>
+            <tbody id="master-tbody">
+                <tr><td colspan="12">
+                    <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading...</p></div>
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allData    = [];
+let filtered   = [];
+let sortKey    = 'Bill No';
+let sortAsc    = false;  // newest first by default
+
+function fmt(n) {
+    return '₹ ' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/* ── Load data ───────────────────────────────────────── */
+async function loadData() {
+    document.getElementById('master-tbody').innerHTML =
+        '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">⏳</div><p>Loading...</p></div></td></tr>';
+
+    try {
+        const res  = await fetch('/api/master');
+        const json = await res.json();
+        if (!json.success) { showToast('Data load nahi hua: ' + json.error, 'error'); return; }
+        allData = json.data;
+        applyFilter();
+    } catch(e) {
+        showToast('Server se connect nahi ho pa raha.', 'error');
+    }
+}
+
+/* ── Sort ────────────────────────────────────────────── */
+function sortBy(key) {
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    renderTable(filtered);
+}
+
+/* ── Filter ──────────────────────────────────────────── */
+function applyFilter() {
+    const search  = document.getElementById('f-search').value.trim().toLowerCase();
+    const company = document.getElementById('f-company').value;
+
+    filtered = allData.filter(r => {
+        const matchSearch = !search ||
+            String(r['Customer Name']).toLowerCase().includes(search) ||
+            String(r['Mobile']).includes(search) ||
+            String(r['Company']).toLowerCase().includes(search) ||
+            String(r['Item']).toLowerCase().includes(search) ||
+            String(r['Bill No']).includes(search);
+        const matchCompany = !company || r['Company'] === company;
+        return matchSearch && matchCompany;
+    });
+
+    renderTable(filtered);
+    updateSummary(filtered);
+}
+
+/* ── Summary ─────────────────────────────────────────── */
+function updateSummary(data) {
+    // Unique bills for totals
+    const seen = new Set();
+    let revenue = 0, due = 0, billCount = 0;
+    data.forEach(r => {
+        if (!seen.has(r['Bill No'])) {
+            seen.add(r['Bill No']);
+            revenue += r['Grand Total'] || 0;
+            due     += r['Due Amount']  || 0;
+            billCount++;
+        }
+    });
+    document.getElementById('s-bills').textContent   = billCount;
+    document.getElementById('s-revenue').textContent = fmt(revenue);
+    document.getElementById('s-due').textContent     = fmt(due);
+    document.getElementById('row-count').textContent = `${data.length} rows`;
+}
+
+/* ── Render ──────────────────────────────────────────── */
+function renderTable(data) {
+    // Sort
+    const sorted = [...data].sort((a, b) => {
+        let av = a[sortKey] ?? '', bv = b[sortKey] ?? '';
+        if (typeof av === 'number') return sortAsc ? av - bv : bv - av;
+        return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+
+    const tbody = document.getElementById('master-tbody');
+
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state" style="padding:32px;"><div class="empty-icon">📭</div><p>Koi data nahi mila.</p></div></td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = sorted.map(r => {
+        const due = r['Due Amount'] || 0;
+        const dueColor = due > 0 ? 'color:var(--danger); font-weight:700' : 'color:var(--accent)';
+        return `
+        <tr>
+            <td style="text-align:center; font-weight:700; color:var(--primary)">#${r['Bill No']}</td>
+            <td style="font-size:12px; color:var(--text-muted)">${String(r['Date']).slice(0,10)}</td>
+            <td style="font-weight:600">${r['Customer Name'] || '—'}</td>
+            <td style="font-size:12.5px; color:var(--text-muted)">${r['Mobile'] || '—'}</td>
+            <td><span class="badge badge-green">${r['Company'] || '—'}</span></td>
+            <td style="max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${r['Item'] || '—'}</td>
+            <td style="text-align:center">${r['Qty'] || ''}</td>
+            <td style="text-align:right">${fmt(r['Rate'] || 0)}</td>
+            <td style="text-align:right">${fmt(r['Total Amount'] || 0)}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary)">${fmt(r['Grand Total'] || 0)}</td>
+            <td style="text-align:right; color:var(--accent); font-weight:600">${fmt(r['Paid Amount'] || 0)}</td>
+            <td style="text-align:right; ${dueColor}">${fmt(due)}</td>
+        </tr>`;
+    }).join('');
+}
+
+/* ── Export PDF ──────────────────────────────────────── */
+async function exportPDF() {
+    const btn = document.getElementById('btn-export');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span> Ban Raha Hai...';
+
+    try {
+        const res  = await fetch('/api/export/master-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+        const json = await res.json();
+        if (json.success) {
+            showToast('✅ Master Data PDF ban gaya aur khul gaya!', 'success', 4000);
+        } else {
+            showToast('PDF Error: ' + json.error, 'error', 5000);
+        }
+    } catch(e) {
+        showToast('Server error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📥 Export to PDF';
+    }
+}
+
+/* ── Listeners ───────────────────────────────────────── */
+document.getElementById('f-search').addEventListener('input',  applyFilter);
+document.getElementById('f-company').addEventListener('change', applyFilter);
+
+loadData();
+</script>
+{% endblock %}
