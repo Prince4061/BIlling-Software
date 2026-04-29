@@ -102,14 +102,48 @@ def generate_pdf(bill_data):
     c.drawString(MARGIN + 40, y + 2, str(bill_data['customer_name']))
     dotted_line(MARGIN + 35, y, width - MARGIN - 10)
     
+    from reportlab.lib.utils import simpleSplit
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def robust_split(text, fontName, fontSize, maxWidth):
+        lines = simpleSplit(text, fontName, fontSize, maxWidth)
+        result = []
+        for line in lines:
+            if stringWidth(line, fontName, fontSize) <= maxWidth:
+                result.append(line)
+            else:
+                current_line = ""
+                for char in line:
+                    if stringWidth(current_line + char, fontName, fontSize) <= maxWidth:
+                        current_line += char
+                    else:
+                        result.append(current_line)
+                        current_line = char
+                if current_line:
+                    result.append(current_line)
+        return result
+
+    raw_address = str(bill_data.get('address', ''))
+    max_addr_w = (width - MARGIN - 190) - (MARGIN + 40)
+    addr_lines = []
+    for line in raw_address.split('\n'):
+        if line.strip():
+            addr_lines.extend(robust_split(line.strip(), "Helvetica", 11, max_addr_w))
+    if not addr_lines:
+        addr_lines = [""]
     y -= 25
     c.drawString(MARGIN + 10, y, "Add.")
-    c.drawString(MARGIN + 40, y + 2, str(bill_data['address']))
+    c.drawString(MARGIN + 40, y + 2, addr_lines[0])
     dotted_line(MARGIN + 35, y, width - MARGIN - 190)
     
     c.drawString(width - MARGIN - 180, y, "Wtsp. No.")
-    c.drawString(width - MARGIN - 120, y + 2, str(bill_data['mobile']))
+    c.drawString(width - MARGIN - 120, y + 2, str(bill_data.get('mobile', '')))
     dotted_line(width - MARGIN - 125, y, width - MARGIN - 10)
+    
+    for extra_line in addr_lines[1:]:
+        y -= 18
+        c.drawString(MARGIN + 40, y + 2, extra_line)
+        dotted_line(MARGIN + 35, y, width - MARGIN - 190)
     
     # 5. Table Layout Setup
     y -= 20
@@ -146,8 +180,6 @@ def generate_pdf(bill_data):
     c.setFillColor(text_dark)
     c.setFont("Helvetica", 11)
     
-    from reportlab.lib.utils import simpleSplit
-    
     curr_y = header_bottom
     items = bill_data.get('items', [])
     
@@ -159,7 +191,7 @@ def generate_pdf(bill_data):
             desc = item.get('desc', '').strip()
             if desc:
                 for line in desc.split('\n'):
-                    desc_lines.extend(simpleSplit(line, "Helvetica", 8, 220))
+                    desc_lines.extend(robust_split(line, "Helvetica", 8, 220))
                 required_h = 24 + len(desc_lines) * 12
                 if required_h > 30:
                     item_h = required_h
