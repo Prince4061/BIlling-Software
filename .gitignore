@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+build/
+dist/
+*.spec
+!ali_mobiles.spec
+
+# App Data
+data/
+bills/
+*.xlsx
+*.pdf
+
+# Environment
+.env
+.venv
+env/
+venv/

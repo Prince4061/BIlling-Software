@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}📊 Business Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- KPI Cards -->
+<div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card green">
+        <span class="kpi-icon">💚</span>
+        <div class="kpi-label">Aaj Ki Bikri</div>
+        <div class="kpi-value" id="kpi-today">₹ —</div>
+    </div>
+    <div class="kpi-card orange">
+        <span class="kpi-icon">🧾</span>
+        <div class="kpi-label">Aaj Ke Bills</div>
+        <div class="kpi-value" id="kpi-bills">—</div>
+    </div>
+    <div class="kpi-card blue">
+        <span class="kpi-icon">📅</span>
+        <div class="kpi-label">Is Mahine Ki Bikri</div>
+        <div class="kpi-value" id="kpi-month">₹ —</div>
+    </div>
+    <div class="kpi-card purple">
+        <span class="kpi-icon">🏆</span>
+        <div class="kpi-label">Total Sabki Bikri</div>
+        <div class="kpi-value" id="kpi-alltime">₹ —</div>
+    </div>
+</div>
+
+<!-- Bottom Grid -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+
+    <!-- Company-wise Sales -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📱 Company Ke Hisaab Se Bikri</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
+        <div class="card-body" id="company-list" style="min-height:200px;">
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">⚡ Quick Actions</span>
+        </div>
+        <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
+
+            <a href="/billing" class="btn btn-success btn-lg" style="justify-content:center;">
+                🧾 Naya Bill Banao
+            </a>
+            <a href="/khata" class="btn btn-danger btn-lg" style="justify-content:center;">
+                💰 Baaki Khata Dekho
+            </a>
+
+            <div style="margin-top:8px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1.5px solid var(--border);">
+                <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;">📍 Shop Info</div>
+                <div style="font-size:13px; color:var(--text); line-height:1.8;">
+                    <strong>H.H. Mobile &amp; Enterprises</strong><br>
+                    Near Makkad Complex, Main Road<br>
+                    Takhatpur — 495330<br>
+                    📞 7869000000 &nbsp;|&nbsp; 💬 9893000005<br>
+                    <span style="color:var(--text-muted); font-size:12px;">GSTIN: 22AUVPD7913L1Z9</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fmt(n) {
+    return '₹ ' + Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+const COMPANY_COLORS = [
+    '#13488B','#1ca350','#e67e22','#8e44ad','#e74c3c',
+    '#2980b9','#16a085','#f39c12','#d35400','#7f8c8d'
+];
+
+async function loadDashboard() {
+    try {
+        const res  = await fetch('/api/dashboard');
+        const json = await res.json();
+
+        if (!json.success) { showToast('Dashboard load nahi hua: ' + json.error, 'error'); return; }
+        const d = json.data;
+
+        document.getElementById('kpi-today').textContent   = fmt(d.today_sales);
+        document.getElementById('kpi-bills').textContent   = d.today_bills;
+        document.getElementById('kpi-month').textContent   = fmt(d.month_sales);
+        document.getElementById('kpi-alltime').textContent = fmt(d.all_time_sales);
+
+        const list = document.getElementById('company-list');
+        const cs   = d.company_sales;
+        const entries = Object.entries(cs).filter(([,v]) => v > 0)
+                               .sort((a,b) => b[1]-a[1]);
+
+        if (entries.length === 0) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>Abhi koi data nahi hai.</p></div>';
+        } else {
+            list.innerHTML = entries.map(([name, val], i) => `
+                <div class="company-row">
+                    <div class="company-name">
+                        <span class="company-dot" style="background:${COMPANY_COLORS[i % COMPANY_COLORS.length]}"></span>
+                        ${name}
+                    </div>
+                    <div class="company-amount">${fmt(val)}</div>
+                </div>`).join('');
+        }
+    } catch(e) {
+        showToast('Server se connect nahi ho pa raha.', 'error');
+    }
+}
+
+loadDashboard();
+</script>
+{% endblock %}
