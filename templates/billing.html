@@ -16,7 +16,7 @@
                 <span class="card-title">👤 Customer Ki Details</span>
             </div>
             <div class="card-body">
-                <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+                <div class="form-grid form-grid-2" style="margin-bottom:14px;">
                     <div class="form-group">
                         <label class="form-label">Customer Ka Naam *</label>
                         <input id="f-name" class="form-control" type="text" placeholder="Naam likhein...">
@@ -28,6 +28,10 @@
                     <div class="form-group">
                         <label class="form-label">Pata (Address)</label>
                         <textarea id="f-address" class="form-control" placeholder="Ghar ya dukaan ka pata... (Press Enter for new line)" rows="2" style="resize:vertical; overflow-y:hidden; word-break:break-all; white-space:pre-wrap;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Janam Din (DOB) - Optional</label>
+                        <input id="f-dob" class="form-control" type="date">
                     </div>
                 </div>
             </div>
@@ -335,6 +339,7 @@ async function generateBill() {
             customer_name: name,
             mobile,
             address: document.getElementById('f-address').value.trim(),
+            dob: document.getElementById('f-dob').value,
             items,
             tax,
             paid_amount: paid,
@@ -346,7 +351,14 @@ async function generateBill() {
         if (!json.success) { showToast('Error: ' + json.error, 'error', 5000); return; }
 
         // Save bill info BEFORE clearing the form
-        const savedBill = { pdf_path: json.pdf_path, mobile, customer_name: name };
+        const savedBill = { 
+            pdf_path: json.pdf_path, 
+            mobile, 
+            customer_name: name,
+            bill_no: json.bill_no,
+            grand_total: json.grand_total,
+            due: json.due
+        };
         lastBill = savedBill;
 
         const dueMsg = json.due > 0 ? `<br><span style="color:var(--danger)">⚠️ Baaki Rakam: ₹${json.due.toFixed(2)}</span>` : '';
@@ -388,25 +400,33 @@ async function openPdf(pdfPath) {
 async function sendWhatsApp() {
     if (!lastBill) { showToast('Pehle bill banao!', 'warning'); return; }
 
-    const btn = document.getElementById('btn-wa');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Bhej Raha Hai...';
+    let mobile = lastBill.mobile.replace(/\D/g, ''); // Extract only digits
+    if (!mobile) { showToast('Mobile number nahi hai!', 'warning'); return; }
+    
+    if (mobile.length === 10) mobile = "91" + mobile;
 
+    let text = `Namaste ${lastBill.customer_name} Ji! 🙏\n\n`;
+    text += `Aapka bill H.H. MOBILE & Enterprises ki taraf se ready hai.\n`;
+    if (lastBill.bill_no) text += `Bill No: #${lastBill.bill_no}\n`;
+    if (lastBill.grand_total !== undefined) text += `Total Rakam: ₹${lastBill.grand_total.toFixed(2)}\n`;
+    if (lastBill.due > 0) text += `Baaki Rakam: ₹${lastBill.due.toFixed(2)}\n`;
+    text += `\n*Note: Main aapko is message ke saath PDF file manually attach karke bhej raha hoon.*\n\n`;
+    text += `Hamari dukaan par shopping karne ke liye shukriya! 😊`;
+
+    // 1. Open WhatsApp Web/App
+    const url = `https://wa.me/${mobile}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    
+    // 2. Open folder and highlight PDF
     try {
-        const res  = await fetch('/api/send_whatsapp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(lastBill) });
-        const json = await res.json();
-        if (json.success) {
-            showToast('Bill WhatsApp par bhej diya gaya! ✅', 'success');
-            btn.disabled = true;
-        } else {
-            showToast('WhatsApp Error: ' + json.error, 'error', 6000);
-            btn.disabled = false;
-        }
+        await fetch('/api/open_folder_for_whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdf_path: lastBill.pdf_path })
+        });
+        showToast('PDF file apne aap select ho gayi hai. Isko WhatsApp me drag aur drop karein!', 'success', 6000);
     } catch(e) {
-        showToast('Network error: ' + e.message, 'error');
-        btn.disabled = false;
-    } finally {
-        btn.innerHTML = '💬 WhatsApp Par Bhejo';
+        console.error("Folder kholne mein error:", e);
     }
 }
 
@@ -425,6 +445,7 @@ function clearAll(preserveBill = false) {
     let addr = document.getElementById('f-address');
     addr.value = '';
     addr.style.height = '';
+    document.getElementById('f-dob').value     = '';
     document.getElementById('f-tax').value     = '0';
     document.getElementById('f-paid').value    = '';
 }

@@ -11,7 +11,7 @@ def init_excel():
         df = pd.DataFrame(columns=[
             "Bill No", "Date", "Customer Name", "Address", "Mobile", 
             "Company", "Item", "Qty", "Rate", "Total Amount", "Tax",
-            "Grand Total", "Paid Amount", "Due Amount"
+            "Grand Total", "Paid Amount", "Due Amount", "DOB"
         ])
         df.to_excel(EXCEL_FILE, index=False, sheet_name="Master")
 
@@ -36,7 +36,8 @@ def get_dashboard_data():
         "today_bills": 0,
         "month_sales": 0.0,
         "all_time_sales": 0.0,
-        "company_sales": {}
+        "company_sales": {},
+        "today_birthdays": []
     }
     
     if not os.path.exists(EXCEL_FILE):
@@ -79,12 +80,30 @@ def get_dashboard_data():
     company_sales_df = df.groupby('Company')['Total Amount'].sum()
     company_sales = {str(k): float(v) for k, v in company_sales_df.to_dict().items()}
     
+    # Birthday check
+    today_birthdays = []
+    if 'DOB' in df_unique_bills.columns:
+        # Match today's day and month. DOB expected format: YYYY-MM-DD
+        today_date_str = now.strftime("-%m-%d") # e.g. "-05-08"
+        
+        # Filter matching birthdays
+        df_bday = df_unique_bills[df_unique_bills['DOB'].astype(str).str.endswith(today_date_str)]
+        
+        for _, row in df_bday.iterrows():
+            name = str(row.get('Customer Name', '')).strip()
+            if name and name.lower() != 'nan':
+                today_birthdays.append({
+                    "name": name,
+                    "mobile": str(row.get('Mobile', '')).strip()
+                })
+    
     return {
         "today_sales": today_sales,
         "today_bills": today_bills,
         "month_sales": month_sales,
         "all_time_sales": all_time_sales,
-        "company_sales": company_sales
+        "company_sales": company_sales,
+        "today_birthdays": today_birthdays
     }
 
 def get_analytics_data():
@@ -280,7 +299,8 @@ def save_bill(bill_data):
             "Tax": bill_data["tax"],
             "Grand Total": bill_data["grand_total"],
             "Paid Amount": bill_data.get("paid_amount", bill_data["grand_total"]),
-            "Due Amount": bill_data.get("due_amount", 0.0)
+            "Due Amount": bill_data.get("due_amount", 0.0),
+            "DOB": bill_data.get("dob", "")
         }
         rows.append(row)
         

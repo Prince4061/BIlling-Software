@@ -102,6 +102,7 @@ def api_generate_bill():
         customer_name = payload.get("customer_name", "").strip()
         mobile        = payload.get("mobile", "").strip()
         address       = payload.get("address", "").strip()
+        dob           = payload.get("dob", "").strip()
         items         = payload.get("items", [])
         tax           = float(payload.get("tax", 0.0))
         paid_amount   = payload.get("paid_amount", None)
@@ -131,6 +132,7 @@ def api_generate_bill():
             "customer_name": customer_name,
             "mobile":        mobile,
             "address":       address,
+            "dob":           dob,
             "items":         items,
             "tax":           tax,
             "grand_total":   grand_total,
@@ -165,6 +167,22 @@ def api_open_pdf():
         pdf_path = request.get_json().get("pdf_path", "")
         if os.path.exists(pdf_path):
             os.startfile(pdf_path)
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "PDF file nahi mili."}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/open_folder_for_whatsapp", methods=["POST"])
+def api_open_folder_for_whatsapp():
+    """Open Windows Explorer and highlight the PDF file."""
+    try:
+        import subprocess
+        pdf_path = request.get_json().get("pdf_path", "")
+        if os.path.exists(pdf_path):
+            # Normalize path for windows
+            norm_path = os.path.normpath(pdf_path)
+            subprocess.run(['explorer', '/select,', norm_path])
             return jsonify({"success": True})
         return jsonify({"success": False, "error": "PDF file nahi mili."}), 404
     except Exception as e:

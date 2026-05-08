@@ -5,6 +5,22 @@
 
 {% block content %}
 
+<!-- Birthday Banner Container -->
+<div id="birthday-banner-container" style="margin-bottom: 24px; display: none;">
+    <div style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); border-radius: var(--radius); padding: 18px 24px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.5);">
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+            <span style="font-size: 32px;">🎂</span>
+            <div>
+                <h3 style="color: #c0392b; margin: 0; font-size: 18px; font-weight: 800;">Aaj Inka Janam Din Hai!</h3>
+                <p style="margin: 0; color: #a93226; font-size: 13px; font-weight: 500;">Wish them a happy birthday.</p>
+            </div>
+        </div>
+        <div id="birthday-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Birthdays will be injected here -->
+        </div>
+    </div>
+</div>
+
 <!-- KPI Cards -->
 <div class="kpi-grid" id="kpi-grid">
     <div class="kpi-card green">
@@ -101,6 +117,24 @@ async function loadDashboard() {
         document.getElementById('kpi-bills').textContent   = d.today_bills;
         document.getElementById('kpi-month').textContent   = fmt(d.month_sales);
         document.getElementById('kpi-alltime').textContent = fmt(d.all_time_sales);
+
+        // Render Birthdays
+        const bdayContainer = document.getElementById('birthday-banner-container');
+        const bdayList = document.getElementById('birthday-list');
+        if (d.today_birthdays && d.today_birthdays.length > 0) {
+            bdayContainer.style.display = 'block';
+            bdayList.innerHTML = d.today_birthdays.map(b => `
+                <div style="background: rgba(255,255,255,0.7); padding: 10px 16px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #1a1a2e; font-size: 14px;">${b.name}</strong>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #555; font-size: 13px;">📞 ${b.mobile || 'No Number'}</span>
+                        ${b.mobile ? `<a href="https://wa.me/91${b.mobile}?text=Happy%20Birthday%20${encodeURIComponent(b.name)}!%20%F0%9F%8E%82%20-%20H.H.%20Mobile%20%26%20Enterprises" target="_blank" class="btn btn-wa btn-sm" style="text-decoration: none; padding: 4px 10px; font-size: 11px;">💬 Wish</a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            bdayContainer.style.display = 'none';
+        }
 
         const list = document.getElementById('company-list');
         const cs   = d.company_sales;
