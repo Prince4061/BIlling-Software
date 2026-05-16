@@ -56,9 +56,11 @@ a = Analysis(
         'requests', 'requests.adapters',
         'certifi', 'urllib3', 'charset_normalizer', 'idna',
         # Logic modules
-        'logic', 'logic.bill_logic', 'logic.excel_handler',
+        'logic', 'logic.bill_logic', 'logic.database',
         'logic.pdf_generator', 'logic.report_generator',
         'logic.whatsapp_sender',
+        # Database
+        'sqlite3',
         # ReportLab
         'reportlab', 'reportlab.pdfgen', 'reportlab.pdfgen.canvas',
         'reportlab.lib', 'reportlab.lib.pagesizes',

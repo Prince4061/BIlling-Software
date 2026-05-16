@@ -23,7 +23,7 @@ os.chdir(WORK_DIR)
 sys.path.insert(0, BASE_DIR)
 
 from logic.bill_logic import calculate_grand_total
-from logic.excel_handler import get_next_bill_no, save_bill, get_dashboard_data, get_pending_payments, get_analytics_data
+from logic.database import get_next_bill_no, save_bill, get_dashboard_data, get_pending_payments, get_analytics_data, get_all_bills, get_db_path
 from logic.pdf_generator import generate_pdf
 from logic.report_generator import generate_master_pdf, generate_pending_pdf
 
@@ -193,30 +193,14 @@ def api_open_folder_for_whatsapp():
 # MASTER DATA API
 # ══════════════════════════════════════════════════════════════
 
-EXCEL_FILE = "data/bills.xlsx"
-
 @app.route("/api/master")
 def api_master():
     """Return all bills data as JSON for the master data table."""
     try:
-        if not os.path.exists(EXCEL_FILE):
+        df = get_all_bills()
+        if not df:
             return jsonify({"success": True, "data": []})
-        df = pd.read_excel(EXCEL_FILE)
-        if df.empty:
-            return jsonify({"success": True, "data": []})
-        # Fill NaN
-        df = df.fillna("")
-        # Convert to list of dicts
-        records = df.to_dict(orient="records")
-        # Ensure numeric fields are proper
-        for r in records:
-            for key in ["Qty", "Rate", "Total Amount", "Tax", "Grand Total", "Paid Amount", "Due Amount"]:
-                try:
-                    r[key] = float(r[key]) if r[key] != "" else 0.0
-                except Exception:
-                    r[key] = 0.0
-            r["Bill No"] = int(r["Bill No"]) if str(r.get("Bill No","")).replace(".","").isdigit() else r["Bill No"]
-        return jsonify({"success": True, "data": records})
+        return jsonify({"success": True, "data": df})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -229,9 +213,24 @@ def api_master():
 def export_master_pdf():
     """Generate a master data PDF and return it as a download."""
     try:
-        if not os.path.exists(EXCEL_FILE):
-            return jsonify({"success": False, "error": "Data file nahi mili."}), 404
-        df = pd.read_excel(EXCEL_FILE)
+        import sqlite3
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        df = pd.read_sql("SELECT * FROM bills", conn)
+        conn.close()
+        if df.empty:
+            return jsonify({"success": False, "error": "Data nahi mila."}), 404
+
+        # Rename columns to match PDF generator expectations (uppercase)
+        column_mapping = {
+            "bill_no": "Bill No", "date": "Date", "customer_name": "Customer Name",
+            "address": "Address", "mobile": "Mobile", "company": "Company",
+            "item": "Item", "qty": "Qty", "rate": "Rate",
+            "total_amount": "Total Amount", "tax": "Tax", "grand_total": "Grand Total",
+            "paid_amount": "Paid Amount", "due_amount": "Due Amount", "dob": "DOB"
+        }
+        df = df.rename(columns=column_mapping)
+
         pdf_path = generate_master_pdf(df)
         # Also open it locally
         try:
@@ -239,6 +238,30 @@ def export_master_pdf():
         except Exception:
             pass
         return jsonify({"success": True, "pdf_path": pdf_path})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/export/master-csv")
+def export_master_csv():
+    """Export master data as CSV"""
+    try:
+        import sqlite3
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        df = pd.read_sql("SELECT * FROM bills", conn)
+        conn.close()
+
+        if df.empty:
+            return jsonify({"success": False, "error": "Data nahi mila."}), 404
+
+        # Convert to CSV
+        csv_path = "reports/master_data.csv"
+        os.makedirs("reports", exist_ok=True)
+        df.to_csv(csv_path, index=False)
+
+        # Return as file download
+        return send_file(csv_path, as_attachment=True, download_name=f"master_data_{datetime.datetime.now().strftime('%Y-%m-%d')}.csv")
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from logic.bill_logic import calculate_item_total, calculate_grand_total
-from logic.excel_handler import get_next_bill_no, save_bill
+from logic.database import get_next_bill_no, save_bill
 from logic.pdf_generator import generate_pdf
 from logic.whatsapp_sender import send_whatsapp_bill
 
@@ -415,7 +415,7 @@ class AppUI:
     # DASHBOARD
     # ══════════════════════════════════════════════════════════════
     def show_dashboard(self):
-        from logic.excel_handler import get_dashboard_data
+        from logic.database import get_dashboard_data
         try:
             dash_data = get_dashboard_data()
         except Exception as e:
@@ -484,7 +484,7 @@ class AppUI:
     # PENDING PAYMENTS (BAAKI KHATA)
     # ══════════════════════════════════════════════════════════════
     def show_pending_payments(self):
-        from logic.excel_handler import get_pending_payments
+        from logic.database import get_pending_payments
         try:
             all_pending = get_pending_payments()
         except Exception as e:

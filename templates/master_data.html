@@ -32,9 +32,12 @@
 
         <button class="btn btn-ghost btn-sm" onclick="loadData()">🔄 Refresh</button>
 
-        <!-- Export Button -->
+        <!-- Export Buttons -->
+        <button class="btn btn-secondary" id="btn-export-csv" onclick="exportCSV()">
+            📊 Export to CSV
+        </button>
         <button class="btn btn-primary" id="btn-export" onclick="exportPDF()">
-            📥 Export to PDF
+            📄 Export to PDF
         </button>
 
         <!-- Summary Badges -->
@@ -219,7 +222,36 @@ async function exportPDF() {
         showToast('Server error: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '📥 Export to PDF';
+        btn.innerHTML = '📄 Export to PDF';
+    }
+}
+
+/* ── Export CSV ──────────────────────────────────────── */
+async function exportCSV() {
+    const btn = document.getElementById('btn-export-csv');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Exporting...';
+
+    try {
+        const res = await fetch('/api/export/master-csv');
+        if (!res.ok) throw new Error('Server error');
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'master_data_' + new Date().toISOString().slice(0,10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        showToast('✅ CSV download ho gaya!', 'success', 4000);
+    } catch(e) {
+        showToast('CSV Error: ' + e.message, 'error', 5000);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📊 Export to CSV';
     }
 }
 

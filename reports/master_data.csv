@@ -1,0 +1,6 @@
+id,bill_no,date,customer_name,address,mobile,company,item,qty,rate,total_amount,tax,grand_total,paid_amount,due_amount,dob
+1,1,16-05-2026,himanshu,"Tanda
+
+CGBSP",6263210328,iPhone,Iphone 16 (2312345678),1.0,10000.0,10000.0,0.0,10000.0,8000.0,2000.0,2026-05-16
+2,2,16-05-2026,prince,Block Road Takhatpur,6263210328,Xiaomi,ds (ds),1.0,10000.0,10000.0,0.0,10000.0,10000.0,0.0,2026-05-16
+3,3,16-05-2026,sds,sds,6263210328,iPhone,dsds (dsds),1.0,10000.0,10000.0,0.0,10000.0,8000.0,2000.0,2026-05-16
