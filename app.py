@@ -99,11 +99,12 @@ def api_generate_bill():
     try:
         payload = request.get_json()
 
-        customer_name = payload.get("customer_name", "").strip()
-        mobile        = payload.get("mobile", "").strip()
-        address       = payload.get("address", "").strip()
-        dob           = payload.get("dob", "").strip()
-        items         = payload.get("items", [])
+        customer_name  = payload.get("customer_name", "").strip()
+        mobile         = payload.get("mobile", "").strip()
+        address        = payload.get("address", "").strip()
+        dob            = payload.get("dob", "").strip()
+        purchase_date  = payload.get("purchase_date", "").strip()
+        items          = payload.get("items", [])
         tax           = float(payload.get("tax", 0.0))
         paid_amount   = payload.get("paid_amount", None)
 
@@ -133,6 +134,7 @@ def api_generate_bill():
             "mobile":        mobile,
             "address":       address,
             "dob":           dob,
+            "purchase_date": purchase_date,
             "items":         items,
             "tax":           tax,
             "grand_total":   grand_total,

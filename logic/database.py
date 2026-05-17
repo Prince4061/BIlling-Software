@@ -40,7 +40,8 @@ def init_db():
             grand_total REAL,
             paid_amount REAL,
             due_amount REAL,
-            dob TEXT
+            dob TEXT,
+            purchase_date TEXT
         )
     ''')
 
@@ -49,6 +50,12 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_date ON bills(date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_company ON bills(company)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_mobile ON bills(mobile)')
+
+    # Add purchase_date column if not exists (for old databases)
+    try:
+        cursor.execute("ALTER TABLE bills ADD COLUMN purchase_date TEXT")
+    except:
+        pass  # Column already exists
 
     conn.commit()
     conn.close()
@@ -112,15 +119,16 @@ def save_bill(bill_data):
             INSERT INTO bills (
                 bill_no, date, customer_name, address, mobile, company,
                 item, qty, rate, total_amount, tax, grand_total,
-                paid_amount, due_amount, dob
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                paid_amount, due_amount, dob, purchase_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             bill_data["bill_no"], bill_data["date"], bill_data["customer_name"],
             bill_data["address"], bill_data["mobile"], comp,
             item_display, item["qty"], item["rate"], item["amount"],
             bill_data["tax"], bill_data["grand_total"],
             bill_data.get("paid_amount", bill_data["grand_total"]),
-            bill_data.get("due_amount", 0.0), bill_data.get("dob", "")
+            bill_data.get("due_amount", 0.0), bill_data.get("dob", ""),
+            bill_data.get("purchase_date", "")
         ))
 
     conn.commit()
@@ -136,7 +144,7 @@ def get_dashboard_data():
     month_str = now.strftime("-%m-%Y")
 
     # Get unique bills
-    query = "SELECT DISTINCT bill_no, date, grand_total, paid_amount, due_amount, tax FROM bills"
+    query = "SELECT DISTINCT bill_no, date, grand_total, paid_amount, due_amount, tax, dob, customer_name, mobile FROM bills"
     df = pd.read_sql(query, conn)
     conn.close()
 
@@ -168,7 +176,7 @@ def get_dashboard_data():
 
     # Birthdays
     today_birthdays = []
-    if 'DOB' in df.columns:
+    if 'dob' in df.columns:
         dob_match = now.strftime("-%m-%d")
         conn = sqlite3.connect(db_path)
         bday_df = pd.read_sql(f"SELECT DISTINCT customer_name, mobile FROM bills WHERE dob LIKE '%{dob_match}'", conn)
@@ -300,7 +308,7 @@ def get_all_bills():
     df = pd.read_sql("""
         SELECT bill_no, date, customer_name, address, mobile, company,
                item, qty, rate, total_amount, tax, grand_total,
-               paid_amount, due_amount, dob
+               paid_amount, due_amount, dob, purchase_date
         FROM bills ORDER BY bill_no DESC, id ASC
     """, conn)
     conn.close()
@@ -321,7 +329,8 @@ def get_all_bills():
         "grand_total": "Grand Total",
         "paid_amount": "Paid Amount",
         "due_amount": "Due Amount",
-        "dob": "DOB"
+        "dob": "DOB",
+        "purchase_date": "Purchase Date"
     }
     df = df.rename(columns=column_mapping)
 

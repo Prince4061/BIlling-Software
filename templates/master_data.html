@@ -1,241 +1,258 @@
 {% extends "layout.html" %}
 
 {% block title %}Master Data{% endblock %}
-{% block page_title %}📁 Master Data — Sabhi Bills{% endblock %}
+{% block page_title %}📁 Master Data{% endblock %}
 
 {% block content %}
 
-<!-- Header Controls -->
-<div class="card" style="margin-bottom:18px;">
-    <div class="card-body" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-
-        <!-- Search -->
-        <div style="flex:1; min-width:200px;">
-            <input type="text" id="f-search" class="form-control" placeholder="🔍 Customer naam, mobile, company se dhundho...">
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#13488B,#1a5ca8)">📋</div>
+        <div class="stat-info">
+            <span class="stat-label">Total Bills</span>
+            <span class="stat-value" id="s-bills">—</span>
         </div>
-
-        <!-- Company Filter -->
-        <div>
-            <select id="f-company" class="form-control" style="width:140px">
-                <option value="">Sab Companies</option>
-                <option>Xiaomi</option>
-                <option>iPhone</option>
-                <option>Vivo</option>
-                <option>Samsung</option>
-                <option>Oppo</option>
-                <option>Realme</option>
-                <option>OnePlus</option>
-                <option>Nokia</option>
-                <option>Other</option>
-            </select>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#1ca350,#22c55e)">💰</div>
+        <div class="stat-info">
+            <span class="stat-label">Total Revenue</span>
+            <span class="stat-value" id="s-revenue">—</span>
         </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#e74c3c,#f87171)">⚠️</div>
+        <div class="stat-info">
+            <span class="stat-label">Total Due</span>
+            <span class="stat-value" id="s-due">—</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa)">📊</div>
+        <div class="stat-info">
+            <span class="stat-label">Rows</span>
+            <span class="stat-value" id="row-count">—</span>
+        </div>
+    </div>
+</div>
 
-        <button class="btn btn-ghost btn-sm" onclick="loadData()">🔄 Refresh</button>
+<!-- Filters Bar -->
+<div class="filters-bar">
+    <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="f-search" placeholder="Search by customer, mobile, item...">
+    </div>
 
-        <!-- Export Buttons -->
-        <button class="btn btn-secondary" id="btn-export-csv" onclick="exportCSV()">
-            📊 Export to CSV
+    <select id="f-company" class="filter-select">
+        <option value="">All Companies</option>
+        <option>Xiaomi</option>
+        <option>iPhone</option>
+        <option>Vivo</option>
+        <option>Samsung</option>
+        <option>Oppo</option>
+        <option>Realme</option>
+        <option>OnePlus</option>
+        <option>Nokia</option>
+        <option>Other</option>
+    </select>
+
+    <button class="btn btn-ghost" onclick="loadData()">
+        <span>🔄</span> Refresh
+    </button>
+
+    <div class="export-group">
+        <button class="btn btn-outline" onclick="exportCSV()">
+            📊 CSV
         </button>
-        <button class="btn btn-primary" id="btn-export" onclick="exportPDF()">
-            📄 Export to PDF
+        <button class="btn btn-primary" onclick="exportPDF()">
+            📄 PDF
         </button>
-
-        <!-- Summary Badges -->
-        <div style="display:flex; gap:10px; margin-left:auto; flex-wrap:wrap;">
-            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
-                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Bills</div>
-                <div id="s-bills" style="font-size:18px; font-weight:800; color:var(--primary)">—</div>
-            </div>
-            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
-                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Revenue</div>
-                <div id="s-revenue" style="font-size:18px; font-weight:800; color:var(--accent)">—</div>
-            </div>
-            <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:8px 16px; text-align:center;">
-                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total Due</div>
-                <div id="s-due" style="font-size:18px; font-weight:800; color:var(--danger)">—</div>
-            </div>
-        </div>
-
     </div>
 </div>
 
 <!-- Data Table -->
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">📋 Bills Ki Poori List</span>
-        <span id="row-count" class="badge badge-green">Loading...</span>
-    </div>
-    <div class="items-table-wrap" style="max-height:calc(100vh - 310px); overflow-y:auto;">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width:50px; cursor:pointer" onclick="sortBy('Bill No')">Bill# ↕</th>
-                    <th style="width:90px; cursor:pointer" onclick="sortBy('Date')">Tarikh ↕</th>
-                    <th>Customer Ka Naam</th>
-                    <th style="width:110px">Mobile</th>
-                    <th style="width:90px">Company</th>
-                    <th>Item</th>
-                    <th style="width:50px; text-align:center">Qty</th>
-                    <th style="text-align:right; width:90px">Rate (₹)</th>
-                    <th style="text-align:right; width:100px">Amount (₹)</th>
-                    <th style="text-align:right; width:100px">Grand Total</th>
-                    <th style="text-align:right; width:90px">Paid</th>
-                    <th style="text-align:right; width:90px">Baaki</th>
-                </tr>
-            </thead>
-            <tbody id="master-tbody">
-                <tr><td colspan="12">
-                    <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading...</p></div>
-                </td></tr>
-            </tbody>
-        </table>
-    </div>
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="sortable" onclick="sortBy('Bill No')">Bill# <span class="sort-icon">↕</span></th>
+                <th class="sortable" onclick="sortBy('Date')">Date <span class="sort-icon">↕</span></th>
+                <th>Purchase Date</th>
+                <th>Customer Name</th>
+                <th>Mobile</th>
+                <th>Company</th>
+                <th>Item</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Rate</th>
+                <th class="text-right">Amount</th>
+                <th class="text-right">Total</th>
+                <th class="text-right">Paid</th>
+                <th class="text-right">Due</th>
+            </tr>
+        </thead>
+        <tbody id="master-tbody">
+            <tr>
+                <td colspan="13">
+                    <div class="loading-state">
+                        <div class="spinner-lg"></div>
+                        <p>Loading data...</p>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-let allData    = [];
-let filtered   = [];
-let sortKey    = 'Bill No';
-let sortAsc    = false;  // newest first by default
+let allData = [];
+let filtered = [];
+let sortKey = 'Bill No';
+let sortAsc = false;
 
 function fmt(n) {
     return '₹ ' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-/* ── Load data ───────────────────────────────────────── */
 async function loadData() {
-    document.getElementById('master-tbody').innerHTML =
-        '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">⏳</div><p>Loading...</p></div></td></tr>';
+    const tbody = document.getElementById('master-tbody');
+    tbody.innerHTML = `
+        <tr><td colspan="13">
+            <div class="loading-state">
+                <div class="spinner-lg"></div>
+                <p>Loading data...</p>
+            </div>
+        </td></tr>`;
 
     try {
-        const res  = await fetch('/api/master');
+        const res = await fetch('/api/master');
         const json = await res.json();
-        if (!json.success) { showToast('Data load nahi hua: ' + json.error, 'error'); return; }
+        if (!json.success) {
+            showToast('Data load nahi hua: ' + json.error, 'error');
+            return;
+        }
         allData = json.data;
         applyFilter();
     } catch(e) {
-        showToast('Server se connect nahi ho pa raha.', 'error');
+        showToast('Server error: ' + e.message, 'error');
     }
 }
 
-/* ── Sort ────────────────────────────────────────────── */
 function sortBy(key) {
     if (sortKey === key) sortAsc = !sortAsc;
     else { sortKey = key; sortAsc = true; }
     renderTable(filtered);
 }
 
-/* ── Filter ──────────────────────────────────────────── */
 function applyFilter() {
-    const search  = document.getElementById('f-search').value.trim().toLowerCase();
+    const search = document.getElementById('f-search').value.trim().toLowerCase();
     const company = document.getElementById('f-company').value;
 
     filtered = allData.filter(r => {
         const matchSearch = !search ||
-            String(r['Customer Name']).toLowerCase().includes(search) ||
-            String(r['Mobile']).includes(search) ||
-            String(r['Company']).toLowerCase().includes(search) ||
-            String(r['Item']).toLowerCase().includes(search) ||
-            String(r['Bill No']).includes(search);
-        const matchCompany = !company || r['Company'] === company;
+            String(r['Customer Name'] || '').toLowerCase().includes(search) ||
+            String(r['Mobile'] || '').includes(search) ||
+            String(r['Item'] || '').toLowerCase().includes(search) ||
+            String(r['Company'] || '').toLowerCase().includes(search) ||
+            String(r['Bill No'] || '').includes(search);
+        const matchCompany = !company || String(r['Company'] || '') === company;
         return matchSearch && matchCompany;
     });
 
-    renderTable(filtered);
-    updateSummary(filtered);
-}
+    // Sort
+    filtered.sort((a, b) => {
+        let av = a[sortKey], bv = b[sortKey];
+        if (sortKey === 'Date') {
+            av = av || '';
+            bv = bv || '';
+        }
+        if (typeof av === 'number') {
+            return sortAsc ? av - bv : bv - av;
+        }
+        av = String(av || '').toLowerCase();
+        bv = String(bv || '').toLowerCase();
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
 
-/* ── Summary ─────────────────────────────────────────── */
-function updateSummary(data) {
-    // Unique bills for totals
+    // Stats
     const seen = new Set();
     let revenue = 0, due = 0, billCount = 0;
-    data.forEach(r => {
+    filtered.forEach(r => {
         if (!seen.has(r['Bill No'])) {
             seen.add(r['Bill No']);
-            revenue += r['Grand Total'] || 0;
-            due     += r['Due Amount']  || 0;
+            revenue += Number(r['Grand Total'] || 0);
+            due += Number(r['Due Amount'] || 0);
             billCount++;
         }
     });
-    document.getElementById('s-bills').textContent   = billCount;
+
+    document.getElementById('s-bills').textContent = billCount;
     document.getElementById('s-revenue').textContent = fmt(revenue);
-    document.getElementById('s-due').textContent     = fmt(due);
-    document.getElementById('row-count').textContent = `${data.length} rows`;
+    document.getElementById('s-due').textContent = fmt(due);
+    document.getElementById('row-count').textContent = filtered.length + ' rows';
+
+    renderTable(filtered);
 }
 
-/* ── Render ──────────────────────────────────────────── */
 function renderTable(data) {
-    // Sort
-    const sorted = [...data].sort((a, b) => {
-        let av = a[sortKey] ?? '', bv = b[sortKey] ?? '';
-        if (typeof av === 'number') return sortAsc ? av - bv : bv - av;
-        return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-    });
-
     const tbody = document.getElementById('master-tbody');
-
-    if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state" style="padding:32px;"><div class="empty-icon">📭</div><p>Koi data nahi mila.</p></div></td></tr>';
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="13">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>No data found</p>
+                </div>
+            </td></tr>`;
         return;
     }
 
-    tbody.innerHTML = sorted.map(r => {
-        const due = r['Due Amount'] || 0;
-        const dueColor = due > 0 ? 'color:var(--danger); font-weight:700' : 'color:var(--accent)';
-        return `
+    tbody.innerHTML = data.map(r => `
         <tr>
-            <td style="text-align:center; font-weight:700; color:var(--primary)">#${r['Bill No']}</td>
-            <td style="font-size:12px; color:var(--text-muted)">${String(r['Date']).slice(0,10)}</td>
-            <td style="font-weight:600">${r['Customer Name'] || '—'}</td>
-            <td style="font-size:12.5px; color:var(--text-muted)">${r['Mobile'] || '—'}</td>
-            <td><span class="badge badge-green">${r['Company'] || '—'}</span></td>
-            <td style="max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${r['Item'] || '—'}</td>
-            <td style="text-align:center">${r['Qty'] || ''}</td>
-            <td style="text-align:right">${fmt(r['Rate'] || 0)}</td>
-            <td style="text-align:right">${fmt(r['Total Amount'] || 0)}</td>
-            <td style="text-align:right; font-weight:700; color:var(--primary)">${fmt(r['Grand Total'] || 0)}</td>
-            <td style="text-align:right; color:var(--accent); font-weight:600">${fmt(r['Paid Amount'] || 0)}</td>
-            <td style="text-align:right; ${dueColor}">${fmt(due)}</td>
-        </tr>`;
-    }).join('');
+            <td><span class="bill-no">#${r['Bill No']}</span></td>
+            <td>${r['Date'] || '—'}</td>
+            <td>${r['Purchase Date'] || '—'}</td>
+            <td class="customer-name">${r['Customer Name'] || '—'}</td>
+            <td><a href="tel:${r['Mobile']}" class="mobile-link">${r['Mobile'] || '—'}</a></td>
+            <td><span class="company-badge">${r['Company'] || 'Other'}</span></td>
+            <td class="item-name">${r['Item'] || '—'}</td>
+            <td class="text-center">${r['Qty'] || 0}</td>
+            <td class="text-right">${fmt(r['Rate'])}</td>
+            <td class="text-right">${fmt(r['Total Amount'])}</td>
+            <td class="text-right font-bold">${fmt(r['Grand Total'])}</td>
+            <td class="text-right text-success">${fmt(r['Paid Amount'])}</td>
+            <td class="text-right ${(r['Due Amount'] || 0) > 0 ? 'text-danger' : ''}">${fmt(r['Due Amount'])}</td>
+        </tr>
+    `).join('');
 }
 
-/* ── Export PDF ──────────────────────────────────────── */
-async function exportPDF() {
-    const btn = document.getElementById('btn-export');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span> Ban Raha Hai...';
+document.getElementById('f-search').addEventListener('input', applyFilter);
+document.getElementById('f-company').addEventListener('change', applyFilter);
 
+/* ── Export Functions ─────────────────────────────────── */
+async function exportPDF() {
     try {
-        const res  = await fetch('/api/export/master-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+        showToast('Generating PDF...', 'info', 2000);
+        const res = await fetch('/api/export/master-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
         const json = await res.json();
         if (json.success) {
-            showToast('✅ Master Data PDF ban gaya aur khul gaya!', 'success', 4000);
+            showToast('✅ PDF generated successfully!', 'success', 4000);
         } else {
             showToast('PDF Error: ' + json.error, 'error', 5000);
         }
     } catch(e) {
         showToast('Server error: ' + e.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '📄 Export to PDF';
     }
 }
 
-/* ── Export CSV ──────────────────────────────────────── */
 async function exportCSV() {
-    const btn = document.getElementById('btn-export-csv');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Exporting...';
-
     try {
+        showToast('Generating CSV...', 'info', 2000);
         const res = await fetch('/api/export/master-csv');
         if (!res.ok) throw new Error('Server error');
-
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -245,19 +262,11 @@ async function exportCSV() {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
-
-        showToast('✅ CSV download ho gaya!', 'success', 4000);
+        showToast('✅ CSV downloaded!', 'success', 4000);
     } catch(e) {
         showToast('CSV Error: ' + e.message, 'error', 5000);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '📊 Export to CSV';
     }
 }
-
-/* ── Listeners ───────────────────────────────────────── */
-document.getElementById('f-search').addEventListener('input',  applyFilter);
-document.getElementById('f-company').addEventListener('change', applyFilter);
 
 loadData();
 </script>

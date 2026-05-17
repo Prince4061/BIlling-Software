@@ -89,6 +89,15 @@ def generate_pdf(bill_data):
     c.setFillColor(text_dark)
     c.setFont("Helvetica", 11)
     c.drawString(width - MARGIN - 170, y, "Date: " + str(bill_data['date']))
+
+    # Purchase Date (if different from bill date)
+    purchase_date = bill_data.get('purchase_date', '')
+    if purchase_date:
+        y -= 18
+        c.setFillColor(colors.HexColor('#c0392b'))
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(width - MARGIN - 170, y, "📅 Purchase Date: " + str(purchase_date))
+        c.setFillColor(text_dark)
     
     def dotted_line(x1, y1, x2):
         c.setStrokeColor(colors.gray)

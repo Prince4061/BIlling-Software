@@ -33,6 +33,10 @@
                         <label class="form-label">Janam Din (DOB) - Optional</label>
                         <input id="f-dob" class="form-control" type="date">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">📅 Purchase Date - Optional</label>
+                        <input id="f-purchase-date" class="form-control" type="date">
+                    </div>
                 </div>
             </div>
         </div>
@@ -340,6 +344,7 @@ async function generateBill() {
             mobile,
             address: document.getElementById('f-address').value.trim(),
             dob: document.getElementById('f-dob').value,
+            purchase_date: document.getElementById('f-purchase-date').value,
             items,
             tax,
             paid_amount: paid,
@@ -446,6 +451,7 @@ function clearAll(preserveBill = false) {
     addr.value = '';
     addr.style.height = '';
     document.getElementById('f-dob').value     = '';
+    document.getElementById('f-purchase-date').value = '';
     document.getElementById('f-tax').value     = '0';
     document.getElementById('f-paid').value    = '';
 }
